@@ -17,6 +17,7 @@ from monai.transforms import(
     CropForegroundd)
 from monai.data import DataLoader, Dataset, CacheDataset
 from monai.utils import set_determinism # Wenn auf True werden bei gleichen Eingabe Daten immer die gleicher Ergebnisse kommen
+import random
 
 
 def create_groups(in_dir, out_dir, Number_slices):
@@ -80,7 +81,8 @@ def prepare(in_dir = 'Liver', pixdim = (1.5, 1.5, 1.0), a_min = - 200, a_max = 2
     find in the Monai documentation.
     https://monai.io/docs.html
     """
-    set_determinism(seed = 0)
+    #set_determinism(seed = 0)
+    random.seed()
     
     path_train_volumes = sorted(glob(os.path.join(in_dir, 'nifti_files','TrainVolumes', '*.nii.gz')))
     path_train_segmentation = sorted(glob(os.path.join(in_dir, 'nifti_files', 'TrainSegmentation', '*nii.gz')))
@@ -90,6 +92,7 @@ def prepare(in_dir = 'Liver', pixdim = (1.5, 1.5, 1.0), a_min = - 200, a_max = 2
     
     train_files = [{'vol': image_name, 'seg': label_name} for image_name, label_name in zip(path_train_volumes, path_train_segmentation)]
     test_files = [{'vol': image_name, 'seg': label_name} for image_name, label_name in zip(path_test_volumes, path_test_segmentation)]
+    
     
     train_transforms = Compose([
         LoadImaged(keys = ['vol', 'seg']),
@@ -116,19 +119,25 @@ def prepare(in_dir = 'Liver', pixdim = (1.5, 1.5, 1.0), a_min = - 200, a_max = 2
             ])
     if cache:
         train_ds = CacheDataset(data = train_files, transform = train_transforms, cache_rate = 1.0) # transfomierten Daten werden im cache gespeichert
-        train_loader = DataLoader(train_ds, batch_size = 1)
+        train_loader = DataLoader(train_ds, batch_size = 1, shuffle = True)
+        
         
         test_ds = CacheDataset(data = test_files, transform = train_transforms, cache_rate = 1.0) # transfomierten Daten werden im cache gespeichert
-        test_loader = DataLoader(test_ds, batch_size = 1)
+        test_loader = DataLoader(test_ds, batch_size = 1, shuffle = True)
+        
 
         return train_loader, test_loader
     else:
         train_ds = Dataset(data = train_files, transform = train_transforms)
-        train_loader = DataLoader(train_ds, batch_size = 1)
+        train_loader = DataLoader(train_ds, batch_size = 1, shuffle = True)
         
         test_ds = Dataset(data = test_files, transform = train_transforms)
-        test_loader = DataLoader(test_ds, batch_size = 1)
+        test_loader = DataLoader(test_ds, batch_size = 1, shuffle = True)
+        
         
         return train_loader, test_loader
+    
+    
+
 
 

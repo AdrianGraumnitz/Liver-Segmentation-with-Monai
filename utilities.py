@@ -31,7 +31,7 @@ def calculate_weights(val1, val2):
     return torch.tensor(weights, dtype = torch.float32)
 
 def load_weights(model, weights_path):
-    model.load_state_dict(torch.load(weights_path))
+    model.load_state_dict(torch.load(weights_path, map_location=torch.device('cpu')))
 
 def train(model, data_in, loss, optim, max_epochs, model_dir, test_interval = 1, device = torch.device('cpu')):
     best_metric = -1
@@ -44,6 +44,13 @@ def train(model, data_in, loss, optim, max_epochs, model_dir, test_interval = 1,
     
     if os.path.exists(os.path.join(model_dir, 'best_metric_model.pth')):
         load_weights(model, os.path.join(model_dir, 'best_metric_model.pth'))
+        
+    if os.path.exists(os.path.join(model_dir, 'best_metric.txt')):#------------------------------new
+        with open(os.path.join(model_dir, 'best_metric.txt'), 'r') as file:
+            for metric in file:
+                best_metric = metric
+                best_metric = float(best_metric)
+                print(f'\nBest metric Value loaded from file is: {best_metric}')
     
     for epoch in range(max_epochs):
         print('-' * 10)
@@ -71,7 +78,7 @@ def train(model, data_in, loss, optim, max_epochs, model_dir, test_interval = 1,
             
             train_epoch_loss += train_loss.item() # gibt den gesamt Verlust der Epoche wieder
             print(
-                f'Step {train_step} of {len(train_loader)} // Batch_size: {train_loader.batch_size}, '
+                f'E: {epoch + 1}, Step {train_step} of {len(train_loader)}\n'
                 f'Train_loss: {train_loss.item():.4f}' # :.4f gibt die Dezimalstellen nach dem Komma an
             )
             
@@ -130,9 +137,11 @@ def train(model, data_in, loss, optim, max_epochs, model_dir, test_interval = 1,
                     best_metric = epoch_metric_test
                     best_metric_epoch = epoch + 1
                     torch.save(model.state_dict(), os.path.join(model_dir, 'best_metric_model.pth'))
+                    with open(os.path.join(model_dir, 'best_metric.txt'), 'w') as file: #-----------------------------------neu
+                        file.write(str(best_metric))
                     
                 print(
-                    f'current epoch: {epoch + 1} current mean dice: {test_metric:.4f}'
+                    f'E: {epoch + 1}, current mean dice: {test_metric:.4f}'
                     f'\nbest mean dice: {best_metric:.4f}'
                     f'at epoch: {best_metric_epoch}'
                 )
